@@ -52,6 +52,22 @@ store/<key>/
 - `key` = 文件名 slug(保留中文);全称在 `meta.title`。
 - 默认在 PDF 旁另存一份 `.parse/<key>/`(`-o` 改位置;URL 或 `--no-local-cache` 仅写中心 `store/`)。
 
+## 缓存位置与配置
+两处缓存,均可配置:
+
+**中心缓存(恒写)** — 默认 `<脚本目录>/store/`。改它(优先级:CLI > 环境变量 > config > 默认):
+```bash
+# 1) 环境变量(推荐,一处配置,所有调用生效)
+export PAPER_PARSE_STORE=/path/to/cache       # PowerShell: $env:PAPER_PARSE_STORE='D:\cache'
+# 2) config.json 增加一行
+#    "store_root": "/path/to/cache"
+# 3) 命令行单次覆盖
+python parse_doc.py xxx.pdf --store-root /path/to/cache
+# 4) 代码:parse("xxx.pdf", store_root="/path/to/cache")
+```
+
+**本地副本(可选,就近一份)** — 默认在 PDF 旁 `.parse/<key>/`;`-o <dir>` 改位置,`--no-local-cache` 关闭(URL 输入不产)。
+
 ## 浏览 / 搜索已解析的论文
 ```bash
 python serve.py --port 8765 --open

@@ -67,6 +67,10 @@ def load_config(path=None):
                     cfg[k] = v
         except Exception as e:  # noqa: BLE001
             print(f"[警告] 读 config 失败,用默认:{e}")
+    # 环境变量覆盖(便于一处配置,无需改 config / 每次传 --store-root)
+    env_store = os.environ.get("PAPER_PARSE_STORE")
+    if env_store:
+        cfg["store_root"] = env_store
     return cfg
 
 
