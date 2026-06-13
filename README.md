@@ -1,85 +1,67 @@
 # paper-parse
 
-把 **PDF / 图片 / arXiv URL** 解析成 **一篇合并的 Markdown + 可打开的 HTML**(图、公式、表格都还原),只用一个云端 OCR 接口、**不依赖任何通用大模型(GPT/Claude/…)**。单文件、零配置即跑、按内容哈希全库去重(同一篇换名/换位只解析一次,命中秒回)。可被任意 agent 通过 CLI 或 `import` 复用。
+将 PDF / 图片 / arXiv URL 解析为一篇合并的 Markdown 与可打开的 HTML(保留图片、公式、表格)。基于 PaddleOCR-VL 云端 OCR,不依赖任何通用大语言模型。单文件,可经命令行或 `import` 调用,内置内容哈希缓存。
 
 ## 特性
-- 📄 整篇文档**一次请求**提交到 PaddleOCR-VL 云端异步 Job 接口,合并成单个 `.full.md`。
-- 🖼 自动下载图片、生成可双击打开的 `.html`(marked + MathJax 渲染公式/表格)。
-- 🧠 **不调通用大模型**,只需 OCR token;依赖极少(`requests`)。
-- ♻️ **内容哈希去重**:`sha256(PDF 内容 + 模型)`,重复解析直接复用。
-- 🔌 库无关:输入 → 输出;`parse()` 返回 dict,易于集成。
+- 整篇文档一次提交至 PaddleOCR-VL 异步接口,合并为单个 `<key>.full.md`。
+- 生成 HTML(marked + MathJax 渲染公式/表格),自动下载图片。
+- 内容哈希缓存:键为 `sha256(文件内容 + 模型)`,相同内容复用既有结果。
+- `parse()` 返回结构化 dict,便于集成。
 
-## 安装
+## 环境要求
+- Python 3.8+
+- `pip install -r requirements.txt`(`requests`;`pymupdf` 可选)
+
+## 配置
+| 项 | 作用 | 默认 |
+|---|---|---|
+| `PADDLEOCR_TOKEN`(环境变量)/ `--token` | OCR 接口令牌(必需) | — |
+| `PAPER_PARSE_STORE`(环境变量)/ `--store-root` / config `store_root` | 中心缓存目录 | `<脚本目录>/store` |
+| `-o <dir>` | 本地副本目录 | PDF 同级 `.parse/` |
+| `--no-local-cache` | 不生成本地副本 | 生成 |
+| `--proxy <url>` | HTTP(S) 代理 | 无 |
+
+令牌在 [百度 AI Studio · PaddleOCR](https://aistudio.baidu.com/paddleocr) 获取:
 ```bash
-pip install -r requirements.txt   # 仅 requests(pymupdf 可选)
+export PADDLEOCR_TOKEN=<token>          # PowerShell: $env:PADDLEOCR_TOKEN='<token>'
 ```
-需要一个 PaddleOCR-VL 云端接口的 token,放到环境变量:
-```bash
-# bash
-export PADDLEOCR_TOKEN=你的token
-# PowerShell
-$env:PADDLEOCR_TOKEN='你的token'
-```
-> token 在 **百度 AI Studio PaddleOCR:https://aistudio.baidu.com/paddleocr** 申请/获取。本仓库**不内置任何 token**;未设置时会友好报错。
 
 ## 用法
-
-**命令行**
+命令行:
 ```bash
-python parse_doc.py "path/to/paper.pdf"
+python parse_doc.py "paper.pdf"
 python parse_doc.py "https://arxiv.org/pdf/2502.00290"
-python parse_doc.py "某文件夹"          # 递归批量解析其中所有 *.pdf
-# 可选:-o <dir> 另存副本 | --no-local-cache 不在 PDF 旁存 | --refresh 强制重解析 | --proxy http://127.0.0.1:7897
+python parse_doc.py "<目录>"            # 递归批量解析其中所有 *.pdf
 ```
-
-**Python import**
+Python:
 ```python
 from parse_doc import parse
-r = parse("paper.pdf")              # 或 URL;parse(pdf, no_local_cache=True, proxy="...")
-# r = {key, title, central, local, md, html, source, papers_cool, status, cache_hit}
+r = parse("paper.pdf")                  # 或 URL;可传 store_root / proxy / no_local_cache
 text = open(r["md"], encoding="utf-8").read()
 ```
 
-## 产物结构
+## 输出
 ```
 store/<key>/
-├── meta.json                     # 源路径 / 标题 / content_sha256 / papers.cool 链接 / 时间
+├── meta.json                 # 源路径、标题、content_sha256、papers.cool 链接、时间
 └── parsed/
-    ├── <key>.full.md             # 合并后的整篇 Markdown(图片为相对路径)
-    ├── <key>.html                # 可打开 HTML(图/公式/表)
-    └── images/                   # 裁图
+    ├── <key>.full.md         # 合并后的整篇 Markdown(图片为相对路径)
+    ├── <key>.html
+    └── images/
 ```
-- `key` = 文件名 slug(保留中文);全称在 `meta.title`。
-- 默认在 PDF 旁另存一份 `.parse/<key>/`(`-o` 改位置;URL 或 `--no-local-cache` 仅写中心 `store/`)。
+`key` 为文件名 slug(保留中文),完整标题见 `meta.title`。中心缓存始终写入;本地副本默认写至 PDF 同级 `.parse/<key>/`(URL 输入或 `--no-local-cache` 时不生成)。
 
-## 缓存位置与配置
-两处缓存,均可配置:
-
-**中心缓存(恒写)** — 默认 `<脚本目录>/store/`。改它(优先级:CLI > 环境变量 > config > 默认):
-```bash
-# 1) 环境变量(推荐,一处配置,所有调用生效)
-export PAPER_PARSE_STORE=/path/to/cache       # PowerShell: $env:PAPER_PARSE_STORE='D:\cache'
-# 2) config.json 增加一行
-#    "store_root": "/path/to/cache"
-# 3) 命令行单次覆盖
-python parse_doc.py xxx.pdf --store-root /path/to/cache
-# 4) 代码:parse("xxx.pdf", store_root="/path/to/cache")
-```
-
-**本地副本(可选,就近一份)** — 默认在 PDF 旁 `.parse/<key>/`;`-o <dir>` 改位置,`--no-local-cache` 关闭(URL 输入不产)。
-
-## 浏览 / 搜索已解析的论文
+## 浏览与搜索
 ```bash
 python serve.py --port 8765 --open
 ```
-本地 `http://127.0.0.1:8765`:列表 + 标题/全文搜索;单篇 HTML 顶栏可「打开原文 / 文件位置(资源管理器)/ papers.cool 搜索」(需经本地服务器)。
-核对本地副本完整性:`python doctor.py [--fix]`。
+本地 `http://127.0.0.1:8765` 提供列表、标题/全文搜索;单篇 HTML 顶栏含「打开原文 / 文件位置 / papers.cool」。`python doctor.py [--fix]` 核对本地副本。
 
-## 作为 Claude Code skill 使用
-仓库自带 `SKILL.md`。把整个目录放到 `~/.claude/skills/paper-parse/` 即可被 Claude Code 自动发现;其它 agent(如 Codex)可直接按上面的 CLI/import 调用。
+## 作为 Claude Code skill
+将本目录置于 `~/.claude/skills/paper-parse/` 即被自动发现;其它环境可直接经命令行或 `import` 调用。
 
-## 依赖的第三方服务
-本工具依赖云端 OCR 接口 `paddleocr.aistudio-app.com`。该服务的可用性、限流、计费与条款由其提供方决定;使用者需自备 token 并遵守其服务条款。网络不通时可加 `--proxy`。
+## 第三方服务
+依赖云端 OCR 接口 `paddleocr.aistudio-app.com`,其可用性、限流与条款由服务方决定;使用者自备令牌并遵循其条款。
 
 ## License
 MIT,见 [LICENSE](LICENSE)。
