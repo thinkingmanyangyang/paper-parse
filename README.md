@@ -20,7 +20,7 @@ export PADDLEOCR_TOKEN=你的token
 # PowerShell
 $env:PADDLEOCR_TOKEN='你的token'
 ```
-> token 自行向对应 OCR 服务申请。本仓库**不内置任何 token**;未设置时会友好报错。
+> token 在 **百度 AI Studio PaddleOCR:https://aistudio.baidu.com/paddleocr** 申请/获取。本仓库**不内置任何 token**;未设置时会友好报错。
 
 ## 用法
 

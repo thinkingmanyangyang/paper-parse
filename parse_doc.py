@@ -383,6 +383,7 @@ def parse(pdf, output=None, refresh=False, config_path=None, store_root=None,
     token = token or os.environ.get(cfg["ocr"].get("token_env", "PADDLEOCR_TOKEN")) or DEFAULT_TOKEN
     if not token:
         sys.exit("[错误] 未配置 OCR token。请设置环境变量 PADDLEOCR_TOKEN(或用 --token 传入)。"
+                 "\n  获取 token: https://aistudio.baidu.com/paddleocr"
                  "\n  PowerShell: $env:PADDLEOCR_TOKEN='你的token'   bash: export PADDLEOCR_TOKEN=你的token")
     job_url = cfg["ocr"].get("endpoint", DEFAULT_JOB_URL)
     model = cfg["ocr"].get("model", DEFAULT_MODEL)
