@@ -1,0 +1,15 @@
+# 解析缓存(含他人论文内容,勿提交)
+store/
+.parse/
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+# 本地服务器日志
+*_serve.log
+*.log
+# OS
+.DS_Store
+Thumbs.db

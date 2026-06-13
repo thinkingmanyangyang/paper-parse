@@ -1,0 +1,8 @@
+{
+  "ocr": {
+    "endpoint": "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs",
+    "model": "PaddleOCR-VL-1.6",
+    "token_env": "PADDLEOCR_TOKEN"
+  },
+  "papers_cool_search": "https://papers.cool/arxiv/search?highlight=1&query="
+}
