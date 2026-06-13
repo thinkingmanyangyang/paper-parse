@@ -7,9 +7,13 @@ description: 独立 PDF/图片/URL 论文解析工具(任意 agent 可复用)。
 
 **自包含**:代码与依赖都在本目录。`<SKILL>` 指本 skill 所在目录。
 
-## 前置
-- `pip install requests`(可选 `pymupdf`)。
-- 设环境变量 `PADDLEOCR_TOKEN=<你的 token>`(本工具不内置 token)。
+## 首次使用前(agent 请主动提醒用户,勿默默跑)
+1. 依赖:`pip install requests`(可选 `pymupdf`)。
+2. **OCR token**:需设环境变量 `PADDLEOCR_TOKEN=<你的 token>`(本工具不内置;未设会报错)。
+3. **缓存位置(务必告知用户)**:解析产物默认存在 **`<SKILL>/store/`**;本地副本默认放在 **PDF 文件旁的 `.parse/`**。
+   首次解析前请告诉用户这两个默认位置,并**询问是否更换缓存目录**:
+   - 更换中心缓存:设环境变量 `PAPER_PARSE_STORE=<目录>`(或单次 `--store-root <目录>`);
+   - 不在 PDF 旁留副本:加 `--no-local-cache`。
 
 ## 用法 A:命令行
 ```
